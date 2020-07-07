@@ -20,10 +20,6 @@ class BootStraps:
 
 
 def main():
-    # naive time recording
-    start_time = time.time()
-    # pre-training system memory snapshot
-    Model.before_memory_copy()
     # import movielens dataset
     dset = cornac.datasets.movielens.load_feedback(variant="100k", reader=Reader())
 
@@ -46,9 +42,7 @@ def main():
     # run experiment on each for results
     for x in samples:
         train_test(x)
-    # post train/test memoy snapshot
-    Model.after_memory_copy()
-    print("--- %s seconds ---" % (time.time() - start_time))
+
 
 
 # @param randomly sampled subset of movielens data, perform 0.8/0.2 train/test split

@@ -9,30 +9,42 @@ import time
 from cornac.models.mf.recom_mf import MF
 
 
+class Model:
+    before_count = 100
+    after_count = 100
+
+    @classmethod
+    def before_memory_copy(cls):
+        print(getrusage(RUSAGE_SELF))
+        with open("before_system_memory_copy%s.txt" % cls.before_count, "w") as write:
+            for line in memory_read():
+                write.write(line)
+        cls.before_count = cls.before_count - 10
+
+    @classmethod
+    def after_memory_copy(cls):
+        print(getrusage(RUSAGE_SELF))
+        with open("after_system_memory_copy%s.txt" % cls.after_count, "w") as write:
+            for line in memory_read():
+                write.write(line)
+        cls.after_count = cls.after_count - 10
+
+
 def memory_read():  # method to provide system memory info before and after model
     # use context manager to prevent memory leak
-    with open("/proc/meminfo", "r") as proc:
+    pid = os.getpid()
+    with open("/proc/%s/status" % pid, "r") as proc:
         proc_contents = proc.read()
         # for line in proc:
         #     print(line, end=" ")
         return proc_contents
 
 
-def before_memory_copy():
-    print(getrusage(RUSAGE_SELF))
-    with open("before_system_memory_copy.txt", "w") as write:
-        for line in memory_read():
-            write.write(line)
-
-
-def after_memory_copy():
-    print(getrusage(RUSAGE_SELF))
-    with open("after_system_memory_copy.txt", "w") as write:
-        for line in memory_read():
-            write.write(line)
-
-
 def run_experiment(ratio_split):
+    # naive time recording
+    start_time = time.time()
+    # pre-training system memory snapshot
+    Model.before_memory_copy()
     mf = cornac.models.MF(
         k=10,
         max_iter=25,
@@ -66,5 +78,6 @@ def run_experiment(ratio_split):
         models=[mf],
         metrics=[mae, mse, rmse, auc, f1, rec_10, pre_10, ndcg, ncrr, mAp, mrr]
     ).run()
-
-
+    # post train/test memoy snapshot
+    Model.after_memory_copy()
+    print("--- %s seconds ---" % (time.time() - start_time))
